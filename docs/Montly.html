@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Montly</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .navbar {
+            background-color: #6a0dad;
+            padding: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar button {
+            background-color: white;
+            color: #6a0dad;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            margin-top: 20px;
+        }
+        .input-container {
+            background-color: #6a0dad;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            width: 35%;
+        }
+        .table-container {
+            width: 60%;
+        }
+        .filter-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            color: black;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        input, select, button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            background-color: white;
+            color: #6a0dad;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #d8bfd8;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img id="worldBankLogo" src="worldBankLogo.png" style="display: none;">
+        <h2>Bienvenido, <span id="username"></span></h2>
+        <button onclick="logout()">Log Out</button>
+    </div>
+    
+    <div class="filter-container">
+        <label for="monthFilter">Filtrar por mes:</label>
+        <input type="month" id="monthFilter" onchange="loadActivities()">
+    </div>
+    
+    <div class="container">
+        <div class="input-container">
+            <h3>Registrar Actividad</h3>
+            <input type="text" id="activity" placeholder="Nombre de la actividad">
+            <input type="date" id="date">
+            <select id="hours">
+                <option value="1">1 hora</option>
+                <option value="2">2 horas</option>
+                <option value="3">3 horas</option>
+                <option value="4">4 horas</option>
+                <option value="5">5 horas</option>
+                <option value="6">6 horas</option>
+                <option value="7">7 horas</option>
+                <option value="8">8 horas</option>
+                <option value="9">9 horas</option>
+                <option value="10">10 horas</option>
+                <option value="11">11 horas</option>
+                <option value="12">12 horas</option>
+            </select>
+            <button onclick="submitActivity()">Guardar</button>
+        </div>
+        <div class="table-container">
+            <h3>Registro de Actividades</h3>
+            <table id="activityTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Actividad</th>
+                        <th>Horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2"><strong>Total de Horas</strong></td>
+                        <td id="totalHours">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button onclick="exportToPDF()">Descargar PDF</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const username = localStorage.getItem("username");
+            document.getElementById("username").textContent = username || "Usuario";
+            loadActivities();
+        });
+
+        function logout() {
+            window.location.href = "index.html";
+        }
+
+        function submitActivity() {
+            const activity = document.getElementById("activity").value;
+            const date = document.getElementById("date").value;
+            const hours = document.getElementById("hours").value;
+            if (!activity || !date || !hours) {
+                alert("Por favor completa todos los campos");
+                return;
+            }
+            let activities = JSON.parse(localStorage.getItem("activities")) || [];
+            activities.push({ date, activity, hours });
+            localStorage.setItem("activities", JSON.stringify(activities));
+            loadActivities();
+        }
+
+        function loadActivities() {
+    let activities = JSON.parse(localStorage.getItem("activities")) || [];
+    const table = document.getElementById("activityTable").getElementsByTagName('tbody')[0];
+    table.innerHTML = ""; // Limpiar la tabla antes de insertar nuevos datos
+
+    let totalHours = 0;
+    const monthFilter = document.getElementById("monthFilter").value;
+
+    // Filtrar actividades si hay un mes seleccionado
+    if (monthFilter) {
+        activities = activities.filter(({ date }) => date.startsWith(monthFilter));
+    }
+
+    activities.forEach(({ date, activity, hours }, index) => {
+        const dateObj = new Date(date + "T00:00:00"); // Asegura interpretación correcta en local time
+        const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+        const dayOfMonth = dateObj.getDate(); // Obtener el número del día del mes
+
+        const newRow = table.insertRow();
+        newRow.insertCell(0).textContent = `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} ${dayOfMonth}`;
+        newRow.insertCell(1).textContent = activity;
+        newRow.insertCell(2).textContent = hours;
+        newRow.onclick = function () { deleteActivity(index); };
+
+        totalHours += parseInt(hours);
+    });
+
+    document.getElementById("totalHours").textContent = totalHours;
+}
+
+
+
+
+
+        function deleteActivity(index) {
+            let activities = JSON.parse(localStorage.getItem("activities")) || [];
+            if (confirm("¿Seguro que deseas eliminar esta actividad?")) {
+                activities.splice(index, 1);
+                localStorage.setItem("activities", JSON.stringify(activities));
+                loadActivities();
+            }
+        }
+
+        function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true });
+
+    const imgElement = document.getElementById("worldBankLogo");
+
+    if (imgElement) {
+        // Convertir la imagen a base64
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = imgElement.width;
+        canvas.height = imgElement.height;
+        ctx.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height);
+
+        const imgData = canvas.toDataURL("image/png"); // Convertir a base64
+        doc.addImage(imgData, "PNG", 160, 10, 30, 30); // Agregar al PDF
+    }
+    
+
+    const monthFilter = document.getElementById("monthFilter").value;
+        let monthName = "Sin filtro";
+
+        if (monthFilter) {
+            const [year, month] = monthFilter.split('-');
+            const date = new Date(year, month - 1);
+            monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        doc.setFontSize(12);
+        doc.text("Activity Register - " + monthName, 10, 10);
+        doc.setFontSize(10);
+        doc.text("Jorge Mario Orozco Thomas", 10, 20);
+        doc.text("Consultant", 10, 25);
+        doc.text("Department: Operations", 10, 30);
+        doc.text("Phone: +57 3013108696", 10, 35);
+        doc.text("Bogotá, Colombia", 10, 40);
+
+        let activities = JSON.parse(localStorage.getItem("activities")) || [];
+
+        if (monthFilter) {
+            activities = activities.filter(({ date }) => date.startsWith(monthFilter));
+        }
+
+        activities.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let totalHours = activities.reduce((sum, { hours }) => sum + parseInt(hours), 0);
+
+        const tableData = [];
+        let lastWeekNumber = null;
+
+        activities.forEach(({ date, activity, hours }) => {
+            const dateObj = new Date(date);
+            const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "short" });
+            const dayOfMonth = dateObj.getDate();
+            const weekNumber = getWeekNumber(dateObj);
+
+            if (lastWeekNumber !== null && lastWeekNumber !== weekNumber) {
+                tableData.push([{ content: "", colSpan: 3, styles: { halign: 'center', fontSize: 6 } }]);
+            }
+
+            tableData.push([`${dayOfWeek} ${dayOfMonth}`, activity, hours]);
+            lastWeekNumber = weekNumber;
+        });
+
+        doc.autoTable({
+            startY: 45,
+            head: [['Day', 'Activity', 'Hours']],
+            body: tableData,
+            styles: { fontSize: 9, cellPadding: 2 },
+            headStyles: { fillColor: [0, 51, 200], textColor: 255 },
+            foot: [['', 'Total Hours', totalHours.toString()]],
+            footStyles: { fillColor: [106, 13, 173], textColor: 255, fontStyle: 'bold' }
+        });
+
+        doc.save(`registerActivity_${monthName}.pdf`);
+    }
+
+    function getWeekNumber(date) {
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+        return Math.ceil((date.getDate() + firstDay) / 7);
+}
+    </script>
+</body>
+</html>
