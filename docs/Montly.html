@@ -259,18 +259,18 @@
         let lastWeekNumber = null;
 
         activities.forEach(({ date, activity, hours }) => {
-            const dateObj = new Date(date);
-            const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "short" });
-            const dayOfMonth = dateObj.getDate();
-            const weekNumber = getWeekNumber(dateObj);
+    const dateObj = new Date(date + "T00:00:00"); // Asegura interpretación correcta
+    const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "short" });
+    const dayOfMonth = dateObj.getDate();
+    const weekNumber = getWeekNumber(dateObj);
 
-            if (lastWeekNumber !== null && lastWeekNumber !== weekNumber) {
-                tableData.push([{ content: "", colSpan: 3, styles: { halign: 'center', fontSize: 6 } }]);
-            }
+    if (lastWeekNumber !== null && lastWeekNumber !== weekNumber) {
+        tableData.push([{ content: "", colSpan: 3, styles: { halign: 'center', fontSize: 6 } }]);
+    }
 
-            tableData.push([`${dayOfWeek} ${dayOfMonth}`, activity, hours]);
-            lastWeekNumber = weekNumber;
-        });
+    tableData.push([`${dayOfWeek} ${dayOfMonth}`, activity, hours]);
+    lastWeekNumber = weekNumber;
+});
 
         doc.autoTable({
             startY: 45,
