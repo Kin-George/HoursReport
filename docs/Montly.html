@@ -101,19 +101,19 @@
             <h3>Registrar Actividad</h3>
             <input type="text" id="activity" placeholder="Nombre de la actividad">
             <input type="date" id="date">
-            <select id="hours">
-                <option value="1">1 hora</option>
-                <option value="2">2 horas</option>
-                <option value="3">3 horas</option>
-                <option value="4">4 horas</option>
-                <option value="5">5 horas</option>
-                <option value="6">6 horas</option>
-                <option value="7">7 horas</option>
-                <option value="8">8 horas</option>
-                <option value="9">9 horas</option>
-                <option value="10">10 horas</option>
-                <option value="11">11 horas</option>
-                <option value="12">12 horas</option>
+            <select id="days">
+                <option value="1">1 día</option>
+                <option value="2">2 días</option>
+                <option value="3">3 días</option>
+                <option value="4">4 días</option>
+                <option value="5">5 días</option>
+                <option value="6">6 días</option>
+                <option value="7">7 días</option>
+                <option value="8">8 días</option>
+                <option value="9">9 días</option>
+                <option value="10">10 días</option>
+                <option value="11">11 días</option>
+                <option value="12">12 días</option>
             </select>
             <button onclick="submitActivity()">Guardar</button>
         </div>
@@ -124,15 +124,15 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Actividad</th>
-                        <th>Horas</th>
+                        <th>Días</th>
                     </tr>
                 </thead>
                 <tbody>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="2"><strong>Total de Horas</strong></td>
-                        <td id="totalHours">0</td>
+                        <td colspan="2"><strong>Total de Días</strong></td>
+                        <td id="totalDays">0</td>
                     </tr>
                 </tfoot>
             </table>
@@ -154,13 +154,13 @@
         function submitActivity() {
             const activity = document.getElementById("activity").value;
             const date = document.getElementById("date").value;
-            const hours = document.getElementById("hours").value;
-            if (!activity || !date || !hours) {
+            const days = document.getElementById("days").value;
+            if (!activity || !date || !days) {
                 alert("Por favor completa todos los campos");
                 return;
             }
             let activities = JSON.parse(localStorage.getItem("activities")) || [];
-            activities.push({ date, activity, hours });
+            activities.push({ date, activity, days });
             localStorage.setItem("activities", JSON.stringify(activities));
             loadActivities();
         }
@@ -170,7 +170,7 @@
     const table = document.getElementById("activityTable").getElementsByTagName('tbody')[0];
     table.innerHTML = ""; // Limpiar la tabla antes de insertar nuevos datos
 
-    let totalHours = 0;
+    let totalDays = 0;
     const monthFilter = document.getElementById("monthFilter").value;
 
     // Filtrar actividades si hay un mes seleccionado
@@ -178,7 +178,7 @@
         activities = activities.filter(({ date }) => date.startsWith(monthFilter));
     }
 
-    activities.forEach(({ date, activity, hours }, index) => {
+    activities.forEach(({ date, activity, days }, index) => {
         const dateObj = new Date(date + "T00:00:00"); // Asegura interpretación correcta en local time
         const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "long" });
         const dayOfMonth = dateObj.getDate(); // Obtener el número del día del mes
@@ -186,13 +186,13 @@
         const newRow = table.insertRow();
         newRow.insertCell(0).textContent = `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} ${dayOfMonth}`;
         newRow.insertCell(1).textContent = activity;
-        newRow.insertCell(2).textContent = hours;
+        newRow.insertCell(2).textContent = days;
         newRow.onclick = function () { deleteActivity(index); };
 
-        totalHours += parseInt(hours);
+        totalDays += parseInt(days);
     });
 
-    document.getElementById("totalHours").textContent = totalHours;
+    document.getElementById("totalDays").textContent = totalDays;
 }
 
 
@@ -253,12 +253,12 @@
 
         activities.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let totalHours = activities.reduce((sum, { hours }) => sum + parseInt(hours), 0);
+        let totalDays = activities.reduce((sum, { days }) => sum + parseInt(days), 0);
 
         const tableData = [];
         let lastWeekNumber = null;
 
-        activities.forEach(({ date, activity, hours }) => {
+        activities.forEach(({ date, activity, days }) => {
     const dateObj = new Date(date + "T00:00:00"); // Asegura interpretación correcta
     const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: "short" });
     const dayOfMonth = dateObj.getDate();
@@ -268,17 +268,17 @@
         tableData.push([{ content: "", colSpan: 3, styles: { halign: 'center', fontSize: 6 } }]);
     }
 
-    tableData.push([`${dayOfWeek} ${dayOfMonth}`, activity, hours]);
+    tableData.push([`${dayOfWeek} ${dayOfMonth}`, activity, days]);
     lastWeekNumber = weekNumber;
 });
 
         doc.autoTable({
             startY: 45,
-            head: [['Day', 'Activity', 'Hours']],
+            head: [['Day', 'Activity', 'Days']],
             body: tableData,
             styles: { fontSize: 9, cellPadding: 2 },
             headStyles: { fillColor: [0, 51, 200], textColor: 255 },
-            foot: [['', 'Total Hours', totalHours.toString()]],
+            foot: [['', 'Total Days', totalDays.toString()]],
             footStyles: { fillColor: [106, 13, 173], textColor: 255, fontStyle: 'bold' }
         });
 
